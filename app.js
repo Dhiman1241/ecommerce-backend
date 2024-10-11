@@ -23,7 +23,7 @@ app.use(cors(corsOptions));
 
 // MongoDB Connection and GridFS setup
 const mongoURI = process.env.MONGO_URI;
-const conn = mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+const conn = mongoose.connect(mongoURI)
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('MongoDB connection error:', err)); // Removed deprecated options
 
