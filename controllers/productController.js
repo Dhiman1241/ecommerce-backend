@@ -2,9 +2,13 @@ const { default: mongoose } = require('mongoose');
 const Product = require('../models/product');
 
 // Get all employees
+// Helper function to escape special characters in a string for use in a regular expression
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escapes special characters
+}
+
 exports.getAllProducts = async (req, res) => {
   try {
-
     const { search, page = 1, limit = 10 } = req.query;
 
     // Parse offset and limit as integers
@@ -14,14 +18,17 @@ exports.getAllProducts = async (req, res) => {
     let query = {};
 
     if (search) {
+      // Escape special characters in search term for use in regex
+      const escapedSearch = escapeRegExp(search);
+
       // Check if search is a valid ObjectId
       const isObjectId = mongoose.Types.ObjectId.isValid(search);
 
       query = {
         $or: [
           isObjectId ? { _id: search } : null,                   // Exact match for _id if it's a valid ObjectId
-          { name: { $regex: search, $options: 'i' } },           // Case-insensitive partial search in name
-          { description: { $regex: search, $options: 'i' } }     // Case-insensitive partial search in description
+          { name: { $regex: escapedSearch, $options: 'i' } },    // Case-insensitive partial search in name
+          { description: { $regex: escapedSearch, $options: 'i' } }  // Case-insensitive partial search in description
         ].filter(Boolean), // Remove null entries if _id is not valid
       };
     }
@@ -32,7 +39,7 @@ exports.getAllProducts = async (req, res) => {
     let products;
     if (limit === "all") {
       // If limit is 'all', Product all matching categories
-      products = await Product.find(query)
+      products = await Product.find(query);
     } else {
       // Otherwise, apply the limit and pagination
       const limitParsed = parseInt(limit);
@@ -47,13 +54,14 @@ exports.getAllProducts = async (req, res) => {
       message: 'Data fetched successfully',
       totalRecords,
       offset: pageParsed,
-      limit: limit === "all" ? "all" : parseInt(limit), // Return 'all' if that was the request
+      limit: limit === "all" ? "all" : parseInt(limit) // Return 'all' if that was the request
     });
   } catch (error) {
-    console.log('error ', error)
+    console.log('error ', error);
     res.status(500).json({ message: 'Server error', error: error });
   }
 };
+
 
 // Get an employee by ID
 exports.getproductById = async (req, res) => {
@@ -75,8 +83,7 @@ exports.createProduct = async (req, res) => {
     variations,
     images,
     category,
-    price,
-    reviews } = req.body;
+    price } = req.body;
 
   try {
     const newProduct = new Product({
@@ -87,11 +94,10 @@ exports.createProduct = async (req, res) => {
       variations,
       images,
       category,
-      price,
-      reviews
+      price
     });
     const savedProduct = await newProduct.save();
-    res.status(201).json(savedProduct);
+    res.status(201).json({product:savedProduct, message:'Product Created Successfully'});
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
